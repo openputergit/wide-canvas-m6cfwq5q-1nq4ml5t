@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Daily Report System</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-teal-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-xl font-bold">Employee Daily Report System</h1>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm" v-if="currentUser">Welcome, {{currentUser}}</span>
+                        <button @click="logout" v-if="currentUser" class="bg-teal-700 px-4 py-2 rounded-lg hover:bg-teal-800">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container mx-auto px-4 py-8">
+            <!-- Login Form -->
+            <div v-if="!currentUser" class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+                <form @submit.prevent="login" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Employee ID</label>
+                        <input type="text" v-model="loginForm.employeeId" required 
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Password</label>
+                        <input type="password" v-model="loginForm.password" required 
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <button type="submit" class="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700">
+                        Login
+                    </button>
+                </form>
+            </div>
+
+            <!-- Daily Report Form -->
+            <div v-else class="max-w-4xl mx-auto">
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-2xl font-bold mb-6">Submit Daily Report</h2>
+                    <form @submit.prevent="submitReport" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Date</label>
+                            <input type="date" v-model="reportForm.date" required 
+                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Tasks Completed</label>
+                            <textarea v-model="reportForm.tasksCompleted" required rows="3"
+                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Challenges Faced</label>
+                            <textarea v-model="reportForm.challenges" rows="2"
+                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Tomorrow's Plan</label>
+                            <textarea v-model="reportForm.tomorrowPlan" required rows="2"
+                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                        </div>
+                        <button type="submit" class="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700">
+                            Submit Report
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Previous Reports -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold mb-6">Previous Reports</h2>
+                    <div class="space-y-4">
+                        <div v-for="report in previousReports" :key="report.id" 
+                            class="border-b pb-4 last:border-b-0">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-semibold">{{report.date}}</h3>
+                                <span class="text-sm text-gray-500">{{report.status}}</span>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <p><strong>Tasks Completed:</strong> {{report.tasksCompleted}}</p>
+                                <p v-if="report.challenges"><strong>Challenges:</strong> {{report.challenges}}</p>
+                                <p><strong>Tomorrow's Plan:</strong> {{report.tomorrowPlan}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    currentUser: null,
+                    loginForm: {
+                        employeeId: '',
+                        password: ''
+                    },
+                    reportForm: {
+                        date: new Date().toISOString().split('T')[0],
+                        tasksCompleted: '',
+                        challenges: '',
+                        tomorrowPlan: ''
+                    },
+                    previousReports: []
+                }
+            },
+            methods: {
+                async login(e) {
+                    // Simulate login
+                    this.currentUser = this.loginForm.employeeId
+                    this.loadPreviousReports()
+                },
+                logout() {
+                    this.currentUser = null
+                    this.loginForm = {
+                        employeeId: '',
+                        password: ''
+                    }
+                },
+                async submitReport() {
+                    // Add to previous reports
+                    this.previousReports.unshift({
+                        id: Date.now(),
+                        date: this.reportForm.date,
+                        tasksCompleted: this.reportForm.tasksCompleted,
+                        challenges: this.reportForm.challenges,
+                        tomorrowPlan: this.reportForm.tomorrowPlan,
+                        status: 'Submitted'
+                    })
+
+                    // Reset form
+                    this.reportForm = {
+                        date: new Date().toISOString().split('T')[0],
+                        tasksCompleted: '',
+                        challenges: '',
+                        tomorrowPlan: ''
+                    }
+
+                    alert('Report submitted successfully!')
+                },
+                loadPreviousReports() {
+                    // Simulate loading previous reports
+                    this.previousReports = [
+                        {
+                            id: 1,
+                            date: '2023-11-14',
+                            tasksCompleted: 'Completed the frontend design for the new feature',
+                            challenges: 'Had some issues with cross-browser compatibility',
+                            tomorrowPlan: 'Will start working on the backend integration',
+                            status: 'Approved'
+                        },
+                        {
+                            id: 2,
+                            date: '2023-11-13',
+                            tasksCompleted: 'Code review and bug fixes',
+                            challenges: '',
+                            tomorrowPlan: 'Continue with the remaining bug fixes',
+                            status: 'Approved'
+                        }
+                    ]
+                }
+            }
+        }).mount('#app')
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
